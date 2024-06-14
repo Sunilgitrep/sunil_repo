@@ -16,6 +16,19 @@ for article in articles:
     country=article.find('h3',attrs={'class':'text_sub_header userStatusWrapper'}).get_text().split('(')[1].split(')')[0]
     review=article.find('div',attrs={'class':'text_content'}).get_text()
     rating=article.find('span',attrs={'itemprop':'ratingValue'}).get_text()
+    table=article.find('table',attrs={'class':'review-ratings'})
+    table_rows=table.find_all('tr')
+    d={}
+    for table_row in table_rows:
+        table_data=table_row.find_all('td')
+        key=table_data[0].get_text()
+        value=table_data[1]
+        if(value['class']==['review-rating-stars', 'stars']):
+            value=len(value.find('span',attrs={'class':'star fill'}))
+        else:
+            value=value.get_text()
+                
+        d[key]=value
 
     dictionary_of_review={}
     dictionary_of_review['recorded_date']=recorded_date
@@ -24,6 +37,8 @@ for article in articles:
     dictionary_of_review['country']=country
     dictionary_of_review['review']=review
     dictionary_of_review['rating']=rating
+    dictionary_of_review['details']=d
     list_of_review.append(dictionary_of_review)
 
-pd.json_normalize(list_of_review)
+df=pd.json_normalize(list_of_review)
+df.to_csv('british_a.csv',index=False)
