@@ -25,4 +25,5 @@ for article in articles:
     dictionary_of_review['review']=review
     dictionary_of_review['rating']=rating
     list_of_review.append(dictionary_of_review)
-list_of_review
+
+pd.json_normalize(list_of_review)
