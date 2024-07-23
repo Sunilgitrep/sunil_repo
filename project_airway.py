@@ -24,7 +24,7 @@ for article in articles:
         key=table_data[0].get_text()
         value=table_data[1]
         if(value['class']==['review-rating-stars', 'stars']):
-            value=len(value.find('span',attrs={'class':'star fill'}))
+            value=len(value.find_all('span',attrs={'class':'star fill'}))
         else:
             value=value.get_text()
                 
@@ -40,5 +40,5 @@ for article in articles:
     dictionary_of_review['details']=d
     list_of_review.append(dictionary_of_review)
 
-df=pd.json_normalize(list_of_review)
-df.to_csv('british_a.csv',index=False)
+pd.json_normalize(list_of_review)
+#df.to_csv('british_a.csv',index=False)
