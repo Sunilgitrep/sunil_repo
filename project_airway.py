@@ -47,4 +47,5 @@ while (True):
     break
     i=i+1
 df=pd.json_normalize(list_of_review)
+df.columns = df.columns.str.replace('details.','').str.replace(' & ','_').str.replace(' ','_').str.lower()
 df.to_csv('british_a.csv',index=False)
