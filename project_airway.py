@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import datetime
 from sqlalchemy import create_engine,MetaData,Table,Integer,String,Text,Column
+import smtplib
 
 server = 'airlineserver14.database.windows.net'
 database = 'airlinedatabase'
@@ -18,51 +19,67 @@ con = create_engine(f"mssql+pyodbc:///?odbc_connect={connection_string}")
 
 i=1
 while(True):
-    list_of_review=[]
-    url=f'https://www.airlinequality.com/airline-reviews/british-airways/page/{i}/'
-    html_content=requests.get(url).content
-    soup=BeautifulSoup(html_content,'lxml')
-    articles=soup.find_all('article',attrs={'itemprop':'review'})
-    if (articles==[]):
-        break
-
-    for article in articles:
-        recorded_date=str(datetime.date.today())
-        title=article.find('h2',attrs={'class':'text_header'}).get_text()
-        review_date=article.find('time',attrs={'itemprop':'datePublished'})['datetime']
-        country=article.find('h3',attrs={'class':'text_sub_header userStatusWrapper'}).get_text().split('(')[1].split(')')[0]
-        review=article.find('div',attrs={'class':'text_content'}).get_text()
-        rating=article.find('span',attrs={'itemprop':'ratingValue'}).get_text()
-        table=article.find('table',attrs={'class':'review-ratings'})
-        table_rows=table.find_all('tr')
-        d={}
-        for table_row in table_rows:
-            table_data=table_row.find_all('td')
-            key=table_data[0].get_text()
-            value=table_data[1]
-            if(value['class']==['review-rating-stars', 'stars']):
-                value=len(value.find_all('span',attrs={'class':'star fill'}))
-            else:
-                value=value.get_text()
-
-            d[key]=value
-
-        dictionary_of_review={}
-        dictionary_of_review['recorded_date']=recorded_date
-        dictionary_of_review['title']=title
-        dictionary_of_review['review_date']=review_date
-        dictionary_of_review['country']=country
-        dictionary_of_review['review']=review
-        dictionary_of_review['rating']=rating
-        dictionary_of_review['details']=d
-        list_of_review.append(dictionary_of_review)
-    print (f'collecting data from page {i}')
-    df=pd.json_normalize(list_of_review)
-    df.columns = df.columns.str.replace('details.','').str.replace(' & ','_').str.replace(' ','_').str.lower()
-
-    # dataframe to sql
-    df.to_sql(name='airlinetable',con=con,schema='dbo',index=False,if_exists='append')
+    try:
     
-    i=i+1
+        list_of_review=[]
+        url=f'https://www.airlinequality.com/airline-reviews/british-airways/page/{i}/'
+        html_content=requests.get(url).content
+        soup=BeautifulSoup(html_content,'lxml')
+        articles=soup.find_all('article',attrs={'itemprop':'review'})
+        if (articles==[]):
+            break
 
-df.to_csv('british_a.csv',index=False)
+        for article in articles:
+            recorded_date=str(datetime.date.today())
+            title=article.find('h2',attrs={'class':'text_header'}).get_text()
+            review_date=article.find('time',attrs={'itemprop':'datePublished'})['datetime']
+            country=article.find('h3',attrs={'class':'text_sub_header userStatusWrapper'}).get_text().split('(')[1].split(')')[0]
+            review=article.find('div',attrs={'class':'text_content'}).get_text()
+            rating=article.find('span',attrs={'itemprop':'ratingValue'}).get_text()
+            table=article.find('table',attrs={'class':'review-ratings'})
+            table_rows=table.find_all('tr')
+            d={}
+            for table_row in table_rows:
+                table_data=table_row.find_all('td')
+                key=table_data[0].get_text()
+                value=table_data[1]
+                if(value['class']==['review-rating-stars', 'stars']):
+                    value=len(value.find_all('span',attrs={'class':'star fill'}))
+                else:
+                    value=value.get_text()
+
+                d[key]=value
+
+            dictionary_of_review={}
+            dictionary_of_review['recorded_date']=recorded_date
+            dictionary_of_review['title']=title
+            dictionary_of_review['review_date']=review_date
+            dictionary_of_review['country']=country
+            dictionary_of_review['review']=review
+            dictionary_of_review['rating']=rating
+            dictionary_of_review['details']=d
+            list_of_review.append(dictionary_of_review)
+        print (f'collected data from page {i}')
+        df=pd.json_normalize(list_of_review)
+        df.columns = df.columns.str.replace('details.','').str.replace(' & ','_').str.replace(' ','_').str.lower()
+
+        # dataframe to sql
+        df.to_sql(name='airlinetable',con=con,schema='dbo',index=False,if_exists='append')
+        i=i+1
+        print(f'data collected page {i}')
+
+    except Exception as e:
+        sender_email='jaiswalsonu361@gmail.com'
+        reciever_email='jaiswalsonu361@gmaail.com'
+        subject=f'Error at page Number : {i} str(e.__doc__)'         #str(datetime.date.today)
+        messege=f"Encountered Error : {e.__doc__} + {str(e)}"
+        text=f'subject: {subject}\n\n{messege}'
+        server=smtplib.SMTP("smtp.gmail.com",587)
+        server.starttls()
+        server.login(sender_email,"fvufbrzrrvfnigpe")                #google app password
+        server.sendmail(sender_email,reciever_email,text)
+        print('something happened')
+        break
+       
+
+#df.to_csv('british_a.csv',index=False)
