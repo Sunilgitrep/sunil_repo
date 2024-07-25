@@ -2,10 +2,23 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import datetime
+from sqlalchemy import create_engine,MetaData,Table,Integer,String,Text,Column
 
-list_of_review=[]
+server = 'airlineserver14.database.windows.net'
+database = 'airlinedatabase'
+username = 'airlineadmin'
+password = 'Airline@14'
+driver = '{ODBC Driver 17 for SQL Server}'
+
+connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+
+con = create_engine(f"mssql+pyodbc:///?odbc_connect={connection_string}")
+
+
+
 i=1
-while (True):
+while(True):
+    list_of_review=[]
     url=f'https://www.airlinequality.com/airline-reviews/british-airways/page/{i}/'
     html_content=requests.get(url).content
     soup=BeautifulSoup(html_content,'lxml')
@@ -44,8 +57,12 @@ while (True):
         dictionary_of_review['details']=d
         list_of_review.append(dictionary_of_review)
     print (f'collecting data from page {i}')
-    break
+    df=pd.json_normalize(list_of_review)
+    df.columns = df.columns.str.replace('details.','').str.replace(' & ','_').str.replace(' ','_').str.lower()
+
+    # dataframe to sql
+    df.to_sql(name='airlinetable',con=con,schema='dbo',index=False,if_exists='append')
+    
     i=i+1
-df=pd.json_normalize(list_of_review)
-df.columns = df.columns.str.replace('details.','').str.replace(' & ','_').str.replace(' ','_').str.lower()
+
 df.to_csv('british_a.csv',index=False)
